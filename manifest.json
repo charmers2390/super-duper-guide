@@ -1,0 +1,1 @@
+{"name": "Luna AI", "short_name": "LunaAI", "start_url": ".", "display": "standalone", "background_color": "#000000", "description": "Luna AI pre-programmed assistant", "icons": [{"src": "https://chat.lunabotai.com/favicon.ico", "sizes": "192x192", "type": "image/png"}], "theme_color": "#0e0e0e"}
