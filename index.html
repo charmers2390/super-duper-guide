@@ -1,0 +1,173 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>LunaBot AI</title>
+  <style>
+    body {
+      background-color: #121212;
+      color: white;
+      font-family: Arial, sans-serif;
+      margin: 0;
+      padding: 20px;
+    }
+    #chatbox {
+      width: 95%;
+      max-width: 800px;
+      margin: auto;
+      background: #1e1e1e;
+      border-radius: 10px;
+      padding: 20px;
+      height: 500px;
+      overflow-y: auto;
+    }
+    .chat-entry {
+      margin: 10px 0;
+      padding: 8px;
+      border-radius: 5px;
+    }
+    .user { text-align: right; color: #82cfff; }
+    .bot { text-align: left; color: #90ee90; }
+    #inputArea {
+      display: flex;
+      margin-top: 15px;
+      justify-content: center;
+    }
+    input[type="text"] {
+      flex: 1;
+      padding: 10px;
+      border-radius: 4px;
+      border: none;
+      font-size: 1em;
+    }
+    input[type="file"] { display: none; }
+    .file-label, #sendBtn {
+      background-color: #333;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 10px 15px;
+      cursor: pointer;
+      margin-left: 10px;
+    }
+    .header {
+      width: 95%;
+      max-width: 800px;
+      margin: auto;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 10px;
+    }
+    #settingsPanel {
+      display: none;
+      width: 95%;
+      max-width: 800px;
+      margin: auto;
+      background-color: #1e1e1e;
+      border: 1px solid #444;
+      padding: 15px;
+      font-size: 0.9em;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h2>LunaBot AI</h2>
+    <div>
+      <select>
+        <option>2.5</option>
+        <option>Luna Custom</option>
+        <option>3o</option>
+      </select>
+      <button onclick="toggleSettings()">⚙️</button>
+    </div>
+  </div>
+
+  <div id="settingsPanel">
+    <p><strong>IP address:</strong> Unavailable offline</p>
+    <p><strong>This website:</strong> Chat.lunabotai.com</p>
+    <p><strong>Model:</strong> demo model, research preview</p>
+  </div>
+
+  <div id="chatbox"></div>
+
+  <div id="inputArea">
+    <input type="text" id="userInput" placeholder="Ask LunaBot..." />
+    <label for="uploadFile" class="file-label">+</label>
+    <input type="file" id="uploadFile" accept="image/*" />
+    <button id="sendBtn">Send</button>
+  </div>
+
+  <script>
+    const chatbox = document.getElementById("chatbox");
+    const input = document.getElementById("userInput");
+    const sendBtn = document.getElementById("sendBtn");
+    const uploadFile = document.getElementById("uploadFile");
+
+    function toggleSettings() {
+      const settings = document.getElementById("settingsPanel");
+      settings.style.display = settings.style.display === "block" ? "none" : "block";
+    }
+
+    function appendMessage(message, sender, isImage = false) {
+      const div = document.createElement("div");
+      div.classList.add("chat-entry", sender);
+      if (isImage) {
+        const img = document.createElement("img");
+        img.src = message;
+        img.style.maxWidth = "100%";
+        img.style.borderRadius = "8px";
+        div.appendChild(img);
+      } else {
+        div.textContent = message;
+      }
+      chatbox.appendChild(div);
+      chatbox.scrollTop = chatbox.scrollHeight;
+    }
+
+    function contextResponse(text) {
+      const lower = text.toLowerCase();
+      if (lower.includes("hi") || lower.includes("hello")) return "Hi. I'm LunaTrain AI. How can I help you?";
+      if (lower.includes("2+2")) return "2 + 2 equals 4.";
+      if (lower.includes("moon landing")) return "The moon landing occurred on July 20, 1969.";
+      if (lower.includes("powerhouse")) return "The mitochondrion is the powerhouse of the cell.";
+      if (lower.includes("ai")) return "AI stands for Artificial Intelligence.";
+      if (lower.includes("who are you")) return "I'm LunaBot AI, here to assist with anything you need!";
+      if (lower.includes("earth")) return "Earth is the third planet from the Sun.";
+      return "That's interesting! Here's something cool: Did you know honey never spoils?";
+    }
+
+    sendBtn.addEventListener("click", () => {
+      const text = input.value.trim();
+      if (!text) return;
+      appendMessage(text, "user");
+      setTimeout(() => {
+        appendMessage(contextResponse(text), "bot");
+      }, 500);
+      input.value = "";
+    });
+
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") sendBtn.click();
+    });
+
+    uploadFile.addEventListener("change", (e) => {
+      const file = e.target.files[0];
+      if (!file || !file.type.startsWith("image/")) {
+        appendMessage("That doesn't look like a valid image file.", "bot");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = function(evt) {
+        appendMessage(evt.target.result, "user", true);
+        setTimeout(() => {
+          appendMessage("Nice photo. Is there anything you want me to do with it?", "bot");
+        }, 600);
+      };
+      reader.readAsDataURL(file);
+    });
+  </script>
+</body>
+</html>
