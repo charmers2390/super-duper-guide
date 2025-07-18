@@ -1,0 +1,206 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Luna AI</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Segoe UI', sans-serif;
+      background-color: #0e0e0e;
+      color: #ffffff;
+    }
+    header {
+      background: #1c1c1c;
+      padding: 10px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    header h1 {
+      margin: 0;
+      font-size: 18px;
+    }
+    .toolbar button, .toolbar select {
+      background-color: #333;
+      color: white;
+      border: none;
+      margin-left: 5px;
+      padding: 5px 10px;
+      border-radius: 4px;
+    }
+    .chat-container {
+      height: calc(100vh - 140px);
+      overflow-y: auto;
+      padding: 10px;
+      background: #121212;
+    }
+    .message {
+      margin: 10px 0;
+      padding: 8px 12px;
+      background: #232323;
+      border-radius: 8px;
+      max-width: 90%;
+    }
+    .input-area {
+      position: fixed;
+      bottom: 0;
+      background: #1f1f1f;
+      width: 100%;
+      display: flex;
+      flex-wrap: wrap;
+      padding: 8px;
+      align-items: center;
+      gap: 5px;
+    }
+    .input-area input[type="text"] {
+      flex: 1;
+      padding: 8px;
+      border: none;
+      border-radius: 4px;
+    }
+    .input-area button, .input-area label, .input-area select {
+      background-color: #333;
+      color: white;
+      border: none;
+      padding: 6px 10px;
+      border-radius: 4px;
+    }
+    input[type="file"] {
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Luna AI</h1>
+    <div class="toolbar">
+      <button onclick="toggleSettings()">☰</button>
+      <button onclick="clearChat()">🧽</button>
+      <select>
+        <option>2.5</option>
+        <option>Luna Custom</option>
+        <option>3o</option>
+      </select>
+    </div>
+  </header>
+
+  <div class="chat-container" id="chat"></div>
+
+  <div class="input-area">
+    <input type="text" id="userInput" placeholder="Ask me anything..." onkeydown="if(event.key==='Enter')sendMessage()"/>
+    <button onclick="sendMessage()">Send</button>
+    <label for="fileInput">📎</label>
+    <input type="file" id="fileInput" onchange="handleFileUpload(this.files[0])"/>
+    <button onclick="startVoice()">🎤</button>
+    <select id="language">
+      <option value="en">English</option>
+      <option value="es">Español</option>
+      <option value="fr">Français</option>
+      <option value="de">Deutsch</option>
+      <option value="it">Italiano</option>
+      <option value="ja">日本語</option>
+      <option value="ko">한국어</option>
+      <option value="zh">中文</option>
+      <option value="ru">Русский</option>
+      <option value="pt">Português</option>
+      <option value="hi">हिन्दी</option>
+      <option value="ar">العربية</option>
+      <option value="tr">Türkçe</option>
+      <option value="pl">Polski</option>
+      <option value="nl">Nederlands</option>
+      <option value="sv">Svenska</option>
+      <option value="no">Norsk</option>
+      <option value="fi">Suomi</option>
+      <option value="da">Dansk</option>
+      <option value="cs">Čeština</option>
+      <option value="el">Ελληνικά</option>
+      <option value="th">ไทย</option>
+      <option value="vi">Tiếng Việt</option>
+      <option value="id">Bahasa Indonesia</option>
+      <option value="uk">Українська</option>
+      <option value="ro">Română</option>
+      <option value="hu">Magyar</option>
+      <option value="fa">فارسی</option>
+      <option value="ur">اردو</option>
+      <option value="bn">বাংলা</option>
+      <option value="ta">தமிழ்</option>
+      <option value="te">తెలుగు</option>
+      <option value="ml">മലയാളം</option>
+      <option value="mr">मराठी</option>
+      <option value="gu">ગુજરાતી</option>
+      <option value="pa">ਪੰਜਾਬੀ</option>
+    </select>
+  </div>
+
+  <script>
+    const chat = document.getElementById("chat");
+
+    function addMessage(text, sender = "Luna AI") {
+      const msg = document.createElement("div");
+      msg.className = "message";
+      msg.innerHTML = `<strong>${sender}:</strong> ${text}`;
+      chat.appendChild(msg);
+      chat.scrollTop = chat.scrollHeight;
+      speak(text);
+    }
+
+    function sendMessage() {
+      const input = document.getElementById("userInput");
+      const userMessage = input.value.trim();
+      if (!userMessage) return;
+      addMessage(userMessage, "You");
+      input.value = "";
+      const response = getSmartReply(userMessage.toLowerCase());
+      setTimeout(() => addMessage(response), 400);
+    }
+
+    function getSmartReply(msg) {
+      if (msg.includes("bacon")) return "To cook bacon, place it on a cold pan and cook on medium heat until crispy.";
+      if (msg.includes("2+2")) return "2 + 2 equals 4.";
+      if (msg.includes("moon")) return "The moon landing happened on July 20, 1969.";
+      if (msg.includes("dog")) return "Dogs are loyal and intelligent animals. They make great companions!";
+      if (msg.includes("how are you")) return "I'm functioning as expected! How can I assist you?";
+      if (msg.includes("hi") || msg.includes("hello")) return "Hi, I’m Luna AI. How can I help you today?";
+      if (msg.includes("help")) return "I'm here to help you with science, math, facts, and fun! Ask me anything!";
+      if (msg.includes("love")) return "Love is a powerful emotion that humans experience in many forms.";
+      return "That's a good question. Let me think... Well, I can't truly 'think', but here's something close.";
+    }
+
+    function handleFileUpload(file) {
+      if (file.type.startsWith("image/")) {
+        addMessage("Nice photo. Still wondering what it is because I can’t analyze photos. You can describe it now.");
+      } else {
+        addMessage("Sorry, I can’t analyze your file at this moment.");
+      }
+    }
+
+    function startVoice() {
+      const recognition = new (window.SpeechRecognition || window.webkitSpeechRecognition)();
+      recognition.lang = document.getElementById("language").value;
+      recognition.onresult = function(event) {
+        document.getElementById("userInput").value = event.results[0][0].transcript;
+        sendMessage();
+      };
+      recognition.start();
+    }
+
+    function speak(text) {
+      const lang = document.getElementById("language").value;
+      const utter = new SpeechSynthesisUtterance(text);
+      utter.lang = lang;
+      window.speechSynthesis.speak(utter);
+    }
+
+    function clearChat() {
+      chat.innerHTML = "";
+    }
+
+    function toggleSettings() {
+      alert("Settings panel (coming soon)");
+    }
+  </script>
+</body>
+</html>
