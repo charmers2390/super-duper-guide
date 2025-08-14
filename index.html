@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>LunaBot AI — Chat</title>
+  <style>
+    body {
+      background-color: #0f0f0f;
+      color: white;
+      font-family: Arial, sans-serif;
+      text-align: center;
+    }
+    #chat-box {
+      width: 80%;
+      height: 400px;
+      margin: 20px auto;
+      padding: 10px;
+      background: #1e1e1e;
+      border-radius: 10px;
+      overflow-y: auto;
+      text-align: left;
+    }
+    .message {
+      margin: 5px 0;
+    }
+    .user {
+      color: #9b59b6;
+    }
+    .bot {
+      color: #3498db;
+    }
+    input, button {
+      padding: 10px;
+      margin-top: 10px;
+      border-radius: 5px;
+      border: none;
+    }
+    input {
+      width: 70%;
+    }
+    button {
+      background-color: #9b59b6;
+      color: white;
+      cursor: pointer;
+    }
+  </style>
+</head>
+<body>
+  <h1>LunaBot AI — Chat</h1>
+  <div id="chat-box"></div>
+  <input type="text" id="user-input" placeholder="Type your message..." />
+  <button onclick="sendMessage()">Send</button>
+
+  <script>
+    async function sendMessage() {
+      const input = document.getElementById("user-input");
+      const chatBox = document.getElementById("chat-box");
+      const message = input.value.trim();
+      if (!message) return;
+
+      // Show user message in chat box
+      chatBox.innerHTML += `<div class="message user"><b>You:</b> ${message}</div>`;
+      input.value = "";
+      chatBox.scrollTop = chatBox.scrollHeight;
+
+      try {
+        const response = await fetch("https://lunabotai.onrender.com/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [
+              { role: "user", content: message }
+            ]
+          })
+        });
+
+        const data = await response.json();
+        if (data.reply) {
+          chatBox.innerHTML += `<div class="message bot"><b>LunaBot:</b> ${data.reply}</div>`;
+        } else {
+          chatBox.innerHTML += `<div class="message bot"><b>Error:</b> ${data.error || "Unknown error"}</div>`;
+        }
+        chatBox.scrollTop = chatBox.scrollHeight;
+      } catch (err) {
+        chatBox.innerHTML += `<div class="message bot"><b>Error:</b> ${err.message}</div>`;
+      }
+    }
+  </script>
+</body>
+</html>
