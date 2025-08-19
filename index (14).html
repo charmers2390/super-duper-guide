@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LunaBot – Frontend</title>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #161920;
+    --text: #e8eaf1;
+    --muted: #a8b0c2;
+    --accent: #6c7cff;
+    --accent-2: #22c55e;
+    --danger: #ef4444;
+    --border: #242938;
+  }
+  html, body {
+    height: 100%;
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: ui-sans-serif, -apple-system, Segoe UI, Roboto, Helvetica, Arial, Apple Color Emoji, Segoe UI Emoji;
+  }
+  .app {
+    max-width: 900px;
+    margin: 0 auto;
+    height: 100%;
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 12px;
+    padding: 16px;
+    box-sizing: border-box;
+  }
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+  }
+  header .title {
+    font-weight: 700;
+    letter-spacing: 0.2px;
+  }
+  header .controls {
+    display: flex;
+    gap: 10px;
+  }
+  button, .btn {
+    background: var(--accent);
+    color: white;
+    border: none;
+    padding: 10px 14px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: 600;
+  }
+  button:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+  }
+  .btn-danger {
+    background: var(--danger);
+  }
+  .chat {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 12px;
+    overflow: auto;
+  }
+  .msg {
+    margin: 10px 0;
+    display: grid;
+    grid-template-columns: 72px 1fr;
+    gap: 10px;
+  }
+  .msg .who {
+    text-align: right;
+    color: var(--muted);
+    font-size: 12px;
+    padding-top: 6px;
+  }
+  .msg .bubble {
+    background: #0d0f14;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+  }
+  .msg.user .bubble { background: #0f1320; }
+  .msg.assistant .bubble { background: #0f1a14; }
+  .msg.system .bubble { background: #1a1a1a; }
+  .composer {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--panel);
+    padding: 10px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 10px;
+  }
+  .composer-left {
+    display: grid;
+    grid-template-rows: auto auto;
+    gap: 8px;
+  }
+  textarea {
+    background: #0b0d12;
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 10px;
+    min-height: 80px;
+    resize: vertical;
+    outline: none;
+    font-size: 14px;
+  }
+  .row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .filelist {
+    font-size: 12px;
+    color: var(--muted);
+  }
+  .filepill {
+    border: 1px dashed var(--border);
+    padding: 6px 8px;
+    border-radius: 8px;
+    display: inline-flex;
+    gap: 6px;
+    align-items: center;
+  }
+  .hint { color: var(--muted); font-size: 12px; }
+  .spinner {
+    width: 18px; height: 18px; border-radius: 50%;
+    border: 2px solid var(--border);
+    border-top-color: var(--accent);
+    animation: spin 1s linear infinite;
+    display: inline-block;
+    vertical-align: middle;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  footer { text-align: center; color: var(--muted); font-size: 12px; }
+  a { color: var(--accent-2); text-decoration: none; }
+</style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <div class="title">LunaBot</div>
+    <div class="controls">
+      <button id="clearBtn" class="btn-secondary">Clear</button>
+      <button id="exportBtn" class="btn-secondary">Export</button>
+    </div>
+  </header>
+
+  <main id="chat" class="chat" aria-live="polite"></main>
+
+  <div class="composer">
+    <div class="composer-left">
+      <textarea id="input" placeholder="Type a message. Shift+Enter for a new line."></textarea>
+      <div class="row">
+        <input id="file" type="file" multiple>
+        <span class="hint">Text and JSON are inlined. Other types are base64-embedded (size-limited).</span>
+      </div>
+      <div id="files" class="filelist"></div>
+    </div>
+    <div>
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <footer>
+    Backend: <code>https://openaiandlunabotai.onrender.com</code>
+  </footer>
+</div>
+
+<script>
+  const API_URL = "https://openaiandlunabotai.onrender.com/api/chat";
+  const chatEl = document.getElementById("chat");
+  const inputEl = document.getElementById("input");
+  const sendBtn = document.getElementById("sendBtn");
+  const clearBtn = document.getElementById("clearBtn");
+  const exportBtn = document.getElementById("exportBtn");
+  const fileEl = document.getElementById("file");
+  const filesEl = document.getElementById("files");
+
+  // In-memory + persisted chat history
+  let history = loadHistory();
+
+  function loadHistory() {
+    try {
+      const raw = localStorage.getItem("lunabot_history");
+      return raw ? JSON.parse(raw) : [];
+    } catch { return []; }
+  }
+  function saveHistory() {
+    try {
+      localStorage.setItem("lunabot_history", JSON.stringify(history));
+    } catch {}
+  }
+
+  function sanitize(text) {
+    // basic sanitize to prevent injection; display as text
+    return (text ?? "").toString();
+  }
+
+  function appendMessage(role, content) {
+    const msg = document.createElement("div");
+    msg.className = "msg " + role;
+    const who = document.createElement("div");
+    who.className = "who";
+    who.textContent = role === "user" ? "You" : role === "assistant" ? "Luna" : role;
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    bubble.textContent = content;
+    msg.appendChild(who);
+    msg.appendChild(bubble);
+    chatEl.appendChild(msg);
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  function appendTyping() {
+    const msg = document.createElement("div");
+    msg.className = "msg assistant";
+    const who = document.createElement("div");
+    who.className = "who";
+    who.textContent = "Luna";
+    const bubble = document.createElement("div");
+    bubble.className = "bubble";
+    const spin = document.createElement("span");
+    spin.className = "spinner";
+    bubble.appendChild(spin);
+    msg.appendChild(who);
+    msg.appendChild(bubble);
+    chatEl.appendChild(msg);
+    chatEl.scrollTop = chatEl.scrollHeight;
+    return { el: msg, bubble };
+  }
+
+  function typewriter(el, text, delay=12) {
+    return new Promise(resolve => {
+      let i = 0;
+      const id = setInterval(() => {
+        el.textContent = text.slice(0, i += 2);
+        chatEl.scrollTop = chatEl.scrollHeight;
+        if (i >= text.length) { clearInterval(id); resolve(); }
+      }, delay);
+    });
+  }
+
+  function renderAll() {
+    chatEl.innerHTML = "";
+    for (const m of history) appendMessage(m.role, m.content);
+  }
+  renderAll();
+
+  // File handling
+  const MAX_TEXT_BYTES = 200 * 1024; // 200 KB per text file
+  const MAX_BASE64_CHARS = 150 * 1024; // ~150 KB of base64 string
+
+  let selectedFiles = [];
+  fileEl.addEventListener("change", () => {
+    selectedFiles = Array.from(fileEl.files || []);
+    filesEl.innerHTML = "";
+    if (!selectedFiles.length) return;
+    for (const f of selectedFiles) {
+      const pill = document.createElement("span");
+      pill.className = "filepill";
+      pill.textContent = f.name + " (" + f.type + ", " + f.size + " bytes)";
+      filesEl.appendChild(pill);
+      filesEl.appendChild(document.createTextNode(" "));
+    }
+  });
+
+  async function readFilePreview(file) {
+    // Text-like types: read as text (truncate)
+    const textish = file.type.startsWith("text/") || ["application/json","application/xml","application/javascript","application/sql"].includes(file.type);
+    if (textish) {
+      const text = await readAsText(file, MAX_TEXT_BYTES + 1);
+      const truncated = new Blob([text]).size > MAX_TEXT_BYTES;
+      return {
+        mode: "text",
+        name: file.name,
+        type: file.type || "text/plain",
+        size: file.size,
+        truncated,
+        content: truncated ? text.slice(0, MAX_TEXT_BYTES) : text
+      };
+    }
+    // Otherwise base64 (truncated)
+    const base64 = await readAsDataURL(file);
+    const head = base64.slice(0, MAX_BASE64_CHARS);
+    const truncated = base64.length > MAX_BASE64_CHARS;
+    return {
+      mode: "base64",
+      name: file.name,
+      type: file.type || "application/octet-stream",
+      size: file.size,
+      truncated,
+      content: head
+    };
+  }
+
+  function readAsText(file, maxBytes) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error);
+      reader.onload = () => {
+        let s = reader.result || "";
+        // If the text is too large, slice by code units (approx); we inform truncation anyway.
+        if (maxBytes && new Blob([s]).size > maxBytes) s = s.slice(0, maxBytes);
+        resolve(s);
+      };
+      reader.readAsText(file);
+    });
+  }
+
+  function readAsDataURL(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = () => reject(reader.error);
+      reader.onload = () => resolve(reader.result || "");
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function buildAttachmentBlock(previews) {
+    if (!previews.length) return "";
+    let out = "[Attachments]\n";
+    for (const p of previews) {
+      out += `name: ${p.name}\n`;
+      out += `type: ${p.type}\n`;
+      out += `size: ${p.size} bytes\n`;
+      out += `truncated: ${p.truncated ? "yes" : "no"}\n`;
+      out += "content:\n";
+      out += p.content.replaceAll("\n", "\n");
+      out += "\n---\n";
+    }
+    out += "[/Attachments]\n";
+    return out;
+  }
+
+  async function handleSend() {
+    const text = inputEl.value.trim();
+    const previews = [];
+    for (const f of selectedFiles) {
+      try {
+        const p = await readFilePreview(f);
+        previews.push(p);
+      } catch (e) {
+        console.warn("file read error", e);
+      }
+    }
+
+    const attachmentsBlock = buildAttachmentBlock(previews);
+    const composed = attachmentsBlock + (text || (previews.length ? "Please analyze the attached file(s)." : ""));
+    if (!composed) return;
+
+    // Push user message in UI + history
+    appendMessage("user", composed);
+    history.push({ role: "user", content: composed });
+    saveHistory();
+    inputEl.value = "";
+    fileEl.value = "";
+    selectedFiles = [];
+    filesEl.innerHTML = "";
+
+    sendBtn.disabled = true;
+    const typing = appendTyping();
+
+    try {
+      const payload = {
+        message: composed,
+        history: history.slice(-10) // last turns
+      };
+      const resp = await fetch(API_URL, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      if (!resp.ok) {
+        const errText = await resp.text();
+        typing.bubble.textContent = "Error: " + errText;
+        return;
+      }
+      const data = await resp.json();
+      const reply = (data && data.reply) ? data.reply : "";
+      await typewriter(typing.bubble, reply);
+      history.push({ role: "assistant", content: reply });
+      saveHistory();
+    } catch (e) {
+      typing.bubble.textContent = "Network error. If this persists, verify the backend URL and CORS settings.";
+    } finally {
+      sendBtn.disabled = false;
+    }
+  }
+
+  sendBtn.addEventListener("click", handleSend);
+  inputEl.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  });
+
+  clearBtn.addEventListener("click", () => {
+    history = [];
+    saveHistory();
+    renderAll();
+  });
+
+  exportBtn.addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(history, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "lunabot_chat_export.json";
+    document.body.appendChild(a);
+    a.click();
+    URL.revokeObjectURL(url);
+    a.remove();
+  });
+</script>
+</body>
+</html>
