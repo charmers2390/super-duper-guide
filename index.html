@@ -120,7 +120,7 @@
 
     stopBtn.style.display="inline-block"; abortController=new AbortController();
     try{
-      const response=await fetch("https://openaiandlunabotai.onrender.com/chat",{
+      const response=await fetch("https://openaiandlunabotai.onrender.com/api/chat",{
         method:"POST",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({message:text,lang:settings.lang,model:settings.model,history:currentChat.messages.map(m=>({role:m.cls==="user"?"user":"assistant",content:m.text}))}),
